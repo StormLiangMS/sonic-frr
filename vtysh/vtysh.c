@@ -51,6 +51,9 @@
 #include "json.h"
 #include "ferr.h"
 
+#include <string.h>
+#include <errno.h>
+
 DEFINE_MTYPE_STATIC(MVTYSH, VTYSH_CMD, "Vtysh cmd copy");
 
 /* Struct VTY. */
@@ -894,6 +897,18 @@ int vtysh_config_from_file(struct vty *vty, FILE *fp)
 				(*cmd->func)(cmd, vty, 0, NULL);
 		}
 		}
+	}
+	if (feof(fp)) {
+		// Handle end-of-file (EOF) error
+		vty_out(vty, "End of file reached.\n");
+	} else if (ferror(fp)) {
+		retcode = CMD_ERR_READ_CONF_FILE;
+		// Handle general I/O error
+		vty_out(vty, "fgets error: Error occurred while reading input: %s\n", strerror(errno));
+	} else {
+		retcode = CMD_ERR_READ_CONF_FILE;
+		// Handle other errors
+		vty_out(vty, "fgets error: Unknown error occurred.\n");
 	}
 
 	return (retcode);

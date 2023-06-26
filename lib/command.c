@@ -51,6 +51,9 @@
 
 #include "frrscript.h"
 
+#include <string.h>
+#include <errno.h>
+
 DEFINE_MTYPE_STATIC(LIB, HOST, "Host config");
 DEFINE_MTYPE(LIB, COMPLETION, "Completion item");
 
@@ -1289,6 +1292,18 @@ int config_from_file(struct vty *vty, FILE *fp, unsigned int *line_num)
 		if (ret != CMD_SUCCESS && ret != CMD_WARNING
 		    && ret != CMD_ERR_NOTHING_TODO)
 			error_ret = ret;
+	}
+	if (feof(fp)) {
+		// Handle end-of-file (EOF) error
+		vty_out(vty, "End of file reached.\n");
+	} else if (ferror(fp)) {
+		error_ret = CMD_ERR_READ_CONF_FILE;
+		// Handle general I/O error
+		vty_out(vty, "fgets error: Error occurred while reading input: %s\n", strerror(errno));
+	} else {
+		error_ret = CMD_ERR_READ_CONF_FILE;
+		// Handle other errors
+		vty_out(vty, "fgets error: Unknown error occurred.\n");
 	}
 
 	if (error_ret) {
